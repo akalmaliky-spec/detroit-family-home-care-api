@@ -1,6 +1,10 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 from typing import Optional
 from datetime import datetime
+
+MIN_PASSWORD_LEN = 10
+MAX_PASSWORD_LEN = 256
+MAX_BCRYPT_BYTES = 72
 
 class UserBase(BaseModel):
     email: str
@@ -9,6 +13,20 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        if len(v) < MIN_PASSWORD_LEN:
+            raise ValueError(f"Password must be at least {MIN_PASSWORD_LEN} characters")
+        if len(v) > MAX_PASSWORD_LEN:
+            raise ValueError(f"Password must not exceed {MAX_PASSWORD_LEN} characters")
+        if len(v.encode("utf-8")) > MAX_BCRYPT_BYTES:
+            raise ValueError(
+                f"Password exceeds {MAX_BCRYPT_BYTES} UTF-8 bytes (bcrypt limit). "
+                "Use a shorter password or ASCII-only characters."
+            )
+        return v
 
 class UserUpdate(BaseModel):
     email: Optional[str] = None
