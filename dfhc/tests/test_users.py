@@ -32,6 +32,7 @@ def test_health():
     assert r.json()["status"] == "ok"
 
 def test_create_user():
+    r = client.post("/users/", json={"email": "alice@test.com", "password": "AlicePass1!"})
     assert r.status_code == 201
     assert r.json()["email"] == "alice@test.com"
 
@@ -40,6 +41,8 @@ def test_create_user_password_too_short():
     assert r.status_code == 422
 
 def test_duplicate_user():
+    client.post("/users/", json={"email": "dup@test.com", "password": "DupPass1234!"})
+    r = client.post("/users/", json={"email": "dup@test.com", "password": "DupPass1234!"})
     assert r.status_code == 400
 
 def test_list_users():
