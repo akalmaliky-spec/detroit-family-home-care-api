@@ -1,0 +1,9 @@
+[tool.pytest.ini_options]
+testpaths = ["dfhc/tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 120
+select = ["E", "F", "W"]
+ignore = ["E501"]
+exclude = ["dfhc/alembic"]

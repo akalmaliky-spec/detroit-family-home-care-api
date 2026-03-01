@@ -1,0 +1,28 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: dfhc
+      POSTGRES_PASSWORD: dfhc
+      POSTGRES_DB: dfhc
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dfhc"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  api:
+    build: .
+    command: uvicorn dfhc.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://dfhc:dfhc@db:5432/dfhc
+    depends_on:
+      db:
+        condition: service_healthy
