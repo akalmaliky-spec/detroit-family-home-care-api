@@ -24,7 +24,7 @@ Set these in your deployment platform (Render, Railway, etc.) before starting th
 | `TESTING` | No | Set to `true` only in CI/test environments. Enables SQLite fallback and `create_all()`. |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | No | JWT expiry in minutes. Default: `30` |
 
-> **Warning:** Never set `TESTING=true` in production. It disables production-safety checks.
+> **Warning:** Never set `TESTING=true` in production. It disables all production-safety checks.
 
 ---
 
@@ -43,21 +43,22 @@ docker-compose up --build
 
 ---
 
-## Database Migrations (Production)
+## Database Migrations (Alembic)
 
-This app uses **Alembic** for production schema management.
+This app uses **Alembic** for all production schema management. Alembic is fully configured:
 
-> **Important:** `Base.metadata.create_all()` is only run in `TESTING` mode (CI).
-> In production, always run migrations before starting the server:
+- `alembic.ini` - root config, reads `DATABASE_URL` from environment
+- `dfhc/alembic/env.py` - env with SQLite fallback when `TESTING=true`
+- `dfhc/alembic/versions/` - initial migration matching current models
+
+> **Important:** `Base.metadata.create_all()` is **only** run in `TESTING` mode (CI).
+> In production, the app startup validator will refuse to boot if `DATABASE_URL` or
+> `SECRET_KEY` are missing. Always run migrations before starting the server:
 
 ```bash
 alembic upgrade head
 uvicorn dfhc.main:app --host 0.0.0.0 --port 8000
 ```
-
-For Railway/Render, add this as a pre-deploy command or a startup script.
-
-> **TODO (tracked):** Alembic `alembic.ini` + `env.py` + initial migration file need to be added before first production deploy.
 
 ---
 
@@ -70,12 +71,12 @@ For Railway/Render, add this as a pre-deploy command or a startup script.
    alembic upgrade head && uvicorn dfhc.main:app --host 0.0.0.0 --port 8000
    ```
 4. Provision a PostgreSQL database and copy its URL to `DATABASE_URL`
-5. Generate a strong secret: `openssl rand -hex 32` → set as `SECRET_KEY`
+5. Generate a strong secret: `openssl rand -hex 32` and set as `SECRET_KEY`
 
 ---
 
 ## Security & Contributing
 
-- See [SECURITY.md](./SECURITY.md) for vulnerability reporting.
-- See [docs/BRANCH_PROTECTION.md](./docs/BRANCH_PROTECTION.md) for required branch protection settings.
-- See [docs/SECURITY_NOTES.md](./docs/SECURITY_NOTES.md) for threat model and security notes.
+- See [SECURITY.md](SECURITY.md) for vulnerability reporting.
+- See [docs/BRANCH_PROTECTION.md](docs/BRANCH_PROTECTION.md) for branch protection settings.
+- See [docs/SECURITY_NOTES.md](docs/SECURITY_NOTES.md) for threat model and security notes.
