@@ -4,20 +4,7 @@ Revision ID: 0002
 Revises: 0001
 Create Date: 2026-03-20
 
-Mirrors the SQLAlchemy Client model defined in dfhc/app/models.py:
- - id (Integer, PK, indexed)
- - full_name (String, not null)
- - date_of_birth (String, nullable)
- - diagnosis (String, nullable)
- - address (String, nullable)
- - phone (String, nullable)
- - emergency_contact_name (String, nullable)
- - emergency_contact_phone (String, nullable)
- - medicaid_id (String, nullable)
- - is_active (Boolean, default True)
- - notes (String, nullable)
- - created_at (DateTime, default utcnow)
- - updated_at (DateTime, default utcnow, onupdate utcnow)
+Mirrors the SQLAlchemy Client model defined in dfhc/app/models.py.
 """
 from typing import Sequence, Union
 import sqlalchemy as sa
@@ -34,17 +21,17 @@ def upgrade() -> None:
         "clients",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("full_name", sa.String(), nullable=False),
-        sa.Column("date_of_birth", sa.String(), nullable=True),
+        sa.Column("date_of_birth", sa.Date(), nullable=True),
         sa.Column("diagnosis", sa.String(), nullable=True),
         sa.Column("address", sa.String(), nullable=True),
         sa.Column("phone", sa.String(), nullable=True),
         sa.Column("emergency_contact_name", sa.String(), nullable=True),
         sa.Column("emergency_contact_phone", sa.String(), nullable=True),
         sa.Column("medicaid_id", sa.String(), nullable=True),
-        sa.Column("is_active", sa.Boolean(), nullable=True, server_default=sa.text("true")),
+        sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.text("true")),
         sa.Column("notes", sa.String(), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=True, server_default=sa.text("now()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=True, server_default=sa.text("now()")),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_clients_id"), "clients", ["id"], unique=False)
