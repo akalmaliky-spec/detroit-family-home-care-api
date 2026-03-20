@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from dfhc.app.core.database import engine, Base
-from dfhc.app.routes import users, auth
+from dfhc.app.routes import users, auth, clients
 
 # ---------------------------------------------------------------------------
 # Production startup validation
@@ -41,6 +41,7 @@ app = FastAPI(
 
 app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
+app.include_router(clients.router, prefix="/clients", tags=["clients"])
 
 
 @app.get("/health")
