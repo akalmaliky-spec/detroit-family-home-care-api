@@ -1,24 +1,44 @@
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+
 from dfhc.app.core.database import engine, Base
 from dfhc.app.routes import users, auth
 
 # ---------------------------------------------------------------------------
-# Startup: create tables only in TESTING mode.
-# In production, database schema MUST be managed via Alembic migrations:
-#   alembic upgrade head
-# Run migrations before starting uvicorn. Do NOT rely on create_all() in prod.
-# TODO: add alembic.ini + env.py and an initial migration (tracked in #hardening)
+# Production startup validation
+# Alembic migrations (alembic upgrade head) MUST be run before starting the
+# server in production. This lifespan handler verifies required env vars are
+# present at boot time and fails loudly rather than silently at request time.
 # ---------------------------------------------------------------------------
 _TESTING = os.getenv("TESTING", "").lower() in ("1", "true", "yes")
 
-if _TESTING:
-    # Safe for CI — creates tables in the test SQLite DB
-    Base.metadata.create_all(bind=engine)
-# Production: no create_all() — rely on 'alembic upgrade head' at deploy time.
 
-app = FastAPI(title="DFHC API", version="0.1.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if _TESTING:
+        # CI: create tables in the test SQLite DB so tests work without Alembic
+        Base.metadata.create_all(bind=engine)
+    else:
+        # Production: validate required env vars at startup — fail loudly if missing
+        missing = [v for v in ("DATABASE_URL", "SECRET_KEY") if not os.environ.get(v)]
+        if missing:
+            raise RuntimeError(
+                f"Missing required environment variables: {missing}. "
+                "Set them before starting the server. "
+                "Schema must be applied via: alembic upgrade head"
+            )
+    yield
+    # Shutdown: nothing to clean up at this stage
+
+
+app = FastAPI(
+    title="DFHC API",
+    version="0.1.0",
+    lifespan=lifespan,
+)
+
 app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 
