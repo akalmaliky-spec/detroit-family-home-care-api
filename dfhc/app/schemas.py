@@ -46,3 +46,40 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     sub: Optional[str] = None
+
+
+class ClientBase(BaseModel):
+    full_name: str
+    date_of_birth: Optional[str] = None
+    diagnosis: Optional[str] = None
+    address: Optional[str] = None
+    phone: Optional[str] = None
+    emergency_contact_name: Optional[str] = None
+    emergency_contact_phone: Optional[str] = None
+    medicaid_id: Optional[str] = None
+    is_active: bool = True
+    notes: Optional[str] = None
+
+
+class ClientCreate(ClientBase):
+    pass
+
+
+class ClientUpdate(BaseModel):
+    full_name: Optional[str] = None
+    date_of_birth: Optional[str] = None
+    diagnosis: Optional[str] = None
+    address: Optional[str] = None
+    phone: Optional[str] = None
+    emergency_contact_name: Optional[str] = None
+    emergency_contact_phone: Optional[str] = None
+    medicaid_id: Optional[str] = None
+    is_active: Optional[bool] = None
+    notes: Optional[str] = None
+
+
+class ClientOut(ClientBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    created_at: datetime
