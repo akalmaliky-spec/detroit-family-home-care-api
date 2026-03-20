@@ -9,6 +9,11 @@ on:
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
+
+    env:
+      TESTING: "true"
+      SECRET_KEY: "ci-test-secret-key-not-for-production-1234567890"
+
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
