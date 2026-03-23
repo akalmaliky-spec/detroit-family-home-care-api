@@ -47,8 +47,14 @@ app = FastAPI(
 # ---------------------------------------------------------------------------
 _raw_origins = os.getenv(
     "ALLOWED_ORIGINS",
-    "https://www.detroitfamilyhomecare.com,https://detroitfamilyhomecare.com",
+    ",".join([
+        "https://www.detroitfamilyhomecare.com",
+        "https://detroitfamilyhomecare.com",
+        "https://editor.wix.com",
+        "https://create.editorx.com"
+    ])
 )
+
 _allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
 
 app.add_middleware(
