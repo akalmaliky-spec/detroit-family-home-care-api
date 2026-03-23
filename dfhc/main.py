@@ -46,8 +46,9 @@ app = FastAPI(
 # Defaults to Wix editor preview + production pattern. Tighten in production.
 # ---------------------------------------------------------------------------
 _raw_origins = os.getenv(
-    "ALLOWED_ORIGINS",
-    "https://www.detroitfamilyhomecare.com,https://detroitfamilyhomecare.com",
+  _raw_origins = os.getenv(
+    "ALLOWED_ORIGINS", 
+    "https://www.detroitfamilyhomecare.com,https://detroitfamilyhomecare.com,https://editor.wix.com,https://create.editorx.com"
 )
 _allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
 
