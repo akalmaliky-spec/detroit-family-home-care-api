@@ -15,6 +15,8 @@ services:
         generateValue: true
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
         value: "30"
+      - key: ALLOWED_ORIGINS
+        value: https://www.detroitfamilyhomecare.com,https://detroitfamilyhomecare.com,https://editor.wix.com,https://create.editorx.com
 
 databases:
   - name: detroit-family-home-care-db
