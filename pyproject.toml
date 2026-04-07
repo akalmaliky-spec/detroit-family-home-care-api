@@ -3,7 +3,9 @@ testpaths = ["dfhc/tests"]
 pythonpath = ["."]
 
 [tool.ruff]
+exclude = ["dfhc/alembic"]
+
+[tool.ruff.lint]
 line-length = 120
 select = ["E", "F", "W"]
 ignore = ["E501"]
-exclude = ["dfhc/alembic"]
