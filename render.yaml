@@ -14,7 +14,7 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: ALLOWED_ORIGINS
-        value: https://www.detroitfamilyhomecare.com,https://detroitfamilyhomecare.com
+        value: https://www.detroitfamilyhomecare.com,https://detroitfamilyhomecare.com,https://editor.wix.com,https://create.editorx.com
 
 databases:
   - name: detroit-family-home-care-db
