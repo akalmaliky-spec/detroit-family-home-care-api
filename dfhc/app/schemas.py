@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, field_validator
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, date
 
 MIN_PASSWORD_LEN = 10
 MAX_PASSWORD_LEN = 256
@@ -50,7 +50,7 @@ class TokenData(BaseModel):
 
 class ClientBase(BaseModel):
     full_name: str
-    date_of_birth: Optional[str] = None
+    date_of_birth: Optional[date] = None
     diagnosis: Optional[str] = None
     address: Optional[str] = None
     phone: Optional[str] = None
@@ -67,7 +67,7 @@ class ClientCreate(ClientBase):
 
 class ClientUpdate(BaseModel):
     full_name: Optional[str] = None
-    date_of_birth: Optional[str] = None
+    date_of_birth: Optional[date] = None
     diagnosis: Optional[str] = None
     address: Optional[str] = None
     phone: Optional[str] = None
