@@ -8,5 +8,5 @@ pytest>=8.0.0
 ruff>=0.3.0
 uvicorn[standard]>=0.27.0
 httpx>=0.26.0
-python-multipart>=0.0.9
+python-multipart>=0.0.26
 psycopg2-binary>=2.9.0
