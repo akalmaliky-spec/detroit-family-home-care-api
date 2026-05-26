@@ -1,0 +1,62 @@
+name: Website Monitor
+
+on:
+  schedule:
+    - cron: '0 8 * * *'  # Runs every day at 8:00 AM UTC
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    env:
+      SITE_URL: 'https://www.detroitfamilyhomecare.com'
+      NOTIFY_EMAIL: 'ak.almaliky@gmail.com'
+
+    steps:
+      - name: Check website health
+        id: health_check
+        run: |
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$SITE_URL")
+          echo "status=$HTTP_STATUS" >> $GITHUB_OUTPUT
+          echo "Website returned HTTP status: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "ALERT: Website is DOWN or returning unexpected status!"
+            exit 1
+          else
+            echo "Website is UP and healthy."
+          fi
+
+      - name: Send email notification on failure
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.GMAIL_USERNAME }}
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          subject: "ALERT: Detroit Family Home Care Website is DOWN"
+          to: ak.almaliky@gmail.com
+          from: Detroit Family Home Care Monitor <ak.almaliky@gmail.com>
+          body: |
+            Your website ${{ env.SITE_URL }} is NOT responding correctly.
+            HTTP Status: ${{ steps.health_check.outputs.status }}
+            Time: ${{ github.run_id }}
+            Please check your site immediately at https://www.detroitfamilyhomecare.com
+
+      - name: Send email notification on success
+        if: success()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.GMAIL_USERNAME }}
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          subject: "OK: Detroit Family Home Care Website is UP"
+          to: ak.almaliky@gmail.com
+          from: Detroit Family Home Care Monitor <ak.almaliky@gmail.com>
+          body: |
+            Daily check passed. Your website ${{ env.SITE_URL }} is UP and responding with HTTP 200.
+            Time: Run #${{ github.run_id }}
+            All systems normal.
