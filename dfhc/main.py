@@ -75,3 +75,29 @@ app.include_router(clients.router, prefix="/clients", tags=["clients"])
 def health() -> dict:
     """Public health check — no auth, no DB. Safe to call from Wix backend."""
     return {"status": "ok", "service": "dfhc-api", "version": "0.1.0"}
+
+
+
+@app.get("/monitor", tags=["monitor"])
+def monitor() -> dict:
+    """Website monitoring endpoint — checks site availability and returns status."""
+    import urllib.request
+    import urllib.error
+    import datetime
+    site_url = "https://www.detroitfamilyhomecare.com"
+    checked_at = datetime.datetime.utcnow().isoformat() + "Z"
+    try:
+        req = urllib.request.urlopen(site_url, timeout=15)
+        http_status = req.getcode()
+        site_up = http_status == 200
+    except urllib.error.URLError:
+        http_status = 0
+        site_up = False
+    return {
+        "status": "up" if site_up else "down",
+        "site": site_url,
+        "http_status": http_status,
+        "checked_at": checked_at,
+        "service": "dfhc-api",
+        "version": "0.1.0",
+    }
