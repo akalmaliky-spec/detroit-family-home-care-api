@@ -1,36 +1,4 @@
-import os
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.pool import StaticPool
-from sqlalchemy.orm import sessionmaker
-
-os.environ["TESTING"] = "1"
-os.environ["SECRET_KEY"] = "test-secret-key-that-is-at-least-32-chars"
-os.environ["DATABASE_URL"] = "sqlite://"
-
-from dfhc.app.core.database import Base, get_db  # noqa: E402
-from dfhc.main import app  # noqa: E402
-import dfhc.app.models  # noqa: F401,E402
-
-engine = create_engine(
-    "sqlite://",
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base.metadata.create_all(bind=engine)
-
-
-def override_get_db():
-    db = TestingSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-app.dependency_overrides[get_db] = override_get_db
-client = TestClient(app)
+import pytest
 
 
 CLIENT_PAYLOAD = {
@@ -47,34 +15,22 @@ CLIENT_PAYLOAD = {
 }
 
 
-def auth_headers(email: str = "careadmin@dfhc.test", password: str = "StrongPass123") -> dict:
-    create_user = client.post(
-        "/users/",
-        json={
-            "email": email,
-            "password": password,
-            "full_name": "DFHC Admin",
-            "is_active": True,
-        },
-    )
-    assert create_user.status_code in (201, 400)
+@pytest.fixture
+def auth_headers(make_staff):
+    """Auth headers for a regular (non-admin) staff user."""
 
-    token_response = client.post(
-        "/auth/token",
-        data={"username": email, "password": password},
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-    )
-    assert token_response.status_code == 200
-    token = token_response.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
+    def _headers(email: str = "careadmin@dfhc.test") -> dict:
+        return make_staff(email)
+
+    return _headers
 
 
-def test_clients_requires_auth():
+def test_clients_requires_auth(client):
     r = client.get("/clients/")
     assert r.status_code == 401
 
 
-def test_create_client():
+def test_create_client(client, auth_headers):
     r = client.post("/clients/", json=CLIENT_PAYLOAD, headers=auth_headers())
     assert r.status_code == 201
     data = r.json()
@@ -83,20 +39,20 @@ def test_create_client():
     assert data["date_of_birth"] == "1980-05-15"
 
 
-def test_list_clients():
+def test_list_clients(client, auth_headers):
     headers = auth_headers("list@dfhc.test")
     r = client.get("/clients/", headers=headers)
     assert r.status_code == 200
     assert isinstance(r.json(), list)
 
 
-def test_get_client_not_found():
+def test_get_client_not_found(client, auth_headers):
     r = client.get("/clients/99999", headers=auth_headers("notfound@dfhc.test"))
     assert r.status_code == 404
     assert r.json()["detail"] == "Client not found"
 
 
-def test_get_client_by_id():
+def test_get_client_by_id(client, auth_headers):
     headers = auth_headers("getbyid@dfhc.test")
     create_r = client.post("/clients/", json={**CLIENT_PAYLOAD, "full_name": "Test Client"}, headers=headers)
     assert create_r.status_code == 201
@@ -106,7 +62,7 @@ def test_get_client_by_id():
     assert r.json()["full_name"] == "Test Client"
 
 
-def test_update_client():
+def test_update_client(client, auth_headers):
     headers = auth_headers("update@dfhc.test")
     create_r = client.post("/clients/", json={**CLIENT_PAYLOAD, "full_name": "Update Me"}, headers=headers)
     client_id = create_r.json()["id"]
@@ -115,7 +71,7 @@ def test_update_client():
     assert r.json()["full_name"] == "Updated Name"
 
 
-def test_partial_update_client_notes_only_preserves_other_fields():
+def test_partial_update_client_notes_only_preserves_other_fields(client, auth_headers):
     headers = auth_headers("partial@dfhc.test")
     create_payload = {**CLIENT_PAYLOAD, "full_name": "Partial Update", "notes": "Old notes", "is_active": True}
     create_r = client.post("/clients/", json=create_payload, headers=headers)
@@ -128,14 +84,14 @@ def test_partial_update_client_notes_only_preserves_other_fields():
     assert patched["is_active"] is True
 
 
-def test_update_nonexistent_client_returns_404():
+def test_update_nonexistent_client_returns_404(client, auth_headers):
     headers = auth_headers("missingupdate@dfhc.test")
     patch_r = client.patch("/clients/999999", json={"full_name": "Does Not Matter"}, headers=headers)
     assert patch_r.status_code == 404
     assert patch_r.json()["detail"] == "Client not found"
 
 
-def test_delete_client():
+def test_delete_client(client, auth_headers):
     headers = auth_headers("delete@dfhc.test")
     create_r = client.post("/clients/", json={**CLIENT_PAYLOAD, "full_name": "Delete Me"}, headers=headers)
     client_id = create_r.json()["id"]
@@ -145,14 +101,14 @@ def test_delete_client():
     assert r2.status_code == 404
 
 
-def test_delete_nonexistent_client_returns_404():
+def test_delete_nonexistent_client_returns_404(client, auth_headers):
     headers = auth_headers("deletemissing@dfhc.test")
     r = client.delete("/clients/999999", headers=headers)
     assert r.status_code == 404
     assert r.json()["detail"] == "Client not found"
 
 
-def test_create_client_missing_full_name_returns_422():
+def test_create_client_missing_full_name_returns_422(client, auth_headers):
     headers = auth_headers("missingname@dfhc.test")
     payload = CLIENT_PAYLOAD.copy()
     payload.pop("full_name")
@@ -160,7 +116,7 @@ def test_create_client_missing_full_name_returns_422():
     assert response.status_code == 422
 
 
-def test_create_client_invalid_date_of_birth_returns_422():
+def test_create_client_invalid_date_of_birth_returns_422(client, auth_headers):
     headers = auth_headers("invaliddob@dfhc.test")
     payload = CLIENT_PAYLOAD.copy()
     payload["date_of_birth"] = "not-a-date"

@@ -11,12 +11,20 @@ jobs:
     env:
       SITE_URL: 'https://www.detroitfamilyhomecare.com'
       NOTIFY_EMAIL: 'ak.almaliky@gmail.com'
+      # Email steps run only when both Gmail secrets are set. Without them the
+      # mail step used to fail with "530 Authentication Required" and turn the
+      # whole run red even though the website itself was up.
+      HAS_MAIL_SECRETS: ${{ secrets.GMAIL_USERNAME != '' && secrets.GMAIL_APP_PASSWORD != '' }}
 
     steps:
+      - name: Warn if email secrets are missing
+        if: env.HAS_MAIL_SECRETS != 'true'
+        run: echo "::warning::GMAIL_USERNAME / GMAIL_APP_PASSWORD secrets are not set - email alerts are disabled."
+
       - name: Check website health
         id: health_check
         run: |
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$SITE_URL")
+          HTTP_STATUS=$(curl -sL -o /dev/null -w "%{http_code}" --max-time 30 "$SITE_URL" || true)
           echo "status=$HTTP_STATUS" >> $GITHUB_OUTPUT
           echo "Website returned HTTP status: $HTTP_STATUS"
           if [ "$HTTP_STATUS" != "200" ]; then
@@ -27,7 +35,7 @@ jobs:
           fi
 
       - name: Send email notification on failure
-        if: failure()
+        if: failure() && env.HAS_MAIL_SECRETS == 'true'
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
@@ -45,7 +53,7 @@ jobs:
             Please check your site immediately at https://www.detroitfamilyhomecare.com
 
       - name: Send email notification on success
-        if: success()
+        if: success() && env.HAS_MAIL_SECRETS == 'true'
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com

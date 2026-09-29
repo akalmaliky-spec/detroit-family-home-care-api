@@ -11,28 +11,38 @@ class UserBase(BaseModel):
     full_name: Optional[str] = None
     is_active: bool = True
 
+def _check_password(v: str) -> str:
+    if len(v) < MIN_PASSWORD_LEN:
+        raise ValueError(f"Password must be at least {MIN_PASSWORD_LEN} characters")
+    if len(v) > MAX_PASSWORD_LEN:
+        raise ValueError(f"Password must not exceed {MAX_PASSWORD_LEN} characters")
+    if len(v.encode("utf-8")) > MAX_BCRYPT_BYTES:
+        raise ValueError(
+            f"Password exceeds {MAX_BCRYPT_BYTES} UTF-8 bytes (bcrypt limit). "
+            "Use a shorter password or ASCII-only characters."
+        )
+    return v
+
+
 class UserCreate(UserBase):
     password: str
 
     @field_validator("password")
     @classmethod
     def validate_password(cls, v: str) -> str:
-        if len(v) < MIN_PASSWORD_LEN:
-            raise ValueError(f"Password must be at least {MIN_PASSWORD_LEN} characters")
-        if len(v) > MAX_PASSWORD_LEN:
-            raise ValueError(f"Password must not exceed {MAX_PASSWORD_LEN} characters")
-        if len(v.encode("utf-8")) > MAX_BCRYPT_BYTES:
-            raise ValueError(
-                f"Password exceeds {MAX_BCRYPT_BYTES} UTF-8 bytes (bcrypt limit). "
-                "Use a shorter password or ASCII-only characters."
-            )
-        return v
+        return _check_password(v)
+
 
 class UserUpdate(BaseModel):
     email: Optional[str] = None
     full_name: Optional[str] = None
     password: Optional[str] = None
     is_active: Optional[bool] = None
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v: Optional[str]) -> Optional[str]:
+        return None if v is None else _check_password(v)
 
 class UserOut(UserBase):
     model_config = ConfigDict(from_attributes=True)

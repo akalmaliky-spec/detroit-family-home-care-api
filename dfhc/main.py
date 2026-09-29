@@ -1,5 +1,8 @@
 import os
+import urllib.error
+import urllib.request
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -77,25 +80,23 @@ def health() -> dict:
     return {"status": "ok", "service": "dfhc-api", "version": "0.1.0"}
 
 
+SITE_URL = "https://www.detroitfamilyhomecare.com"
+
 
 @app.get("/monitor", tags=["monitor"])
 def monitor() -> dict:
     """Website monitoring endpoint — checks site availability and returns status."""
-    import urllib.request
-    import urllib.error
-    import datetime
-    site_url = "https://www.detroitfamilyhomecare.com"
-    checked_at = datetime.datetime.utcnow().isoformat() + "Z"
+    checked_at = datetime.now(timezone.utc).isoformat()
     try:
-        req = urllib.request.urlopen(site_url, timeout=15)
-        http_status = req.getcode()
-        site_up = http_status == 200
-    except urllib.error.URLError:
-        http_status = 0
-        site_up = False
+        with urllib.request.urlopen(SITE_URL, timeout=15) as resp:
+            http_status = resp.getcode()
+    except urllib.error.HTTPError as exc:
+        http_status = exc.code  # site answered, but with an error status (4xx/5xx)
+    except (urllib.error.URLError, TimeoutError, OSError):
+        http_status = 0  # no answer at all (DNS failure, timeout, refused)
     return {
-        "status": "up" if site_up else "down",
-        "site": site_url,
+        "status": "up" if http_status == 200 else "down",
+        "site": SITE_URL,
         "http_status": http_status,
         "checked_at": checked_at,
         "service": "dfhc-api",

@@ -62,6 +62,18 @@ uvicorn dfhc.main:app --host 0.0.0.0 --port 8000
 
 ---
 
+## Admin Users
+
+User management (`/users`) is admin-only; client records (`/clients`) need any active logged-in user.
+Create the first admin (or promote an existing user) from a shell with the production env vars set:
+
+```bash
+python -m dfhc.scripts.create_admin you@example.com
+# password is prompted, or read from DFHC_ADMIN_PASSWORD
+```
+
+On Render, run this once from the service's **Shell** tab after deploying.
+
 ## Deployment (Render / Railway)
 
 1. Connect this GitHub repo to your platform

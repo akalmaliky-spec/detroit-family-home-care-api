@@ -10,3 +10,6 @@ venv/
 dist/
 build/
 *.egg-info/
+
+# Local SQLite files created by tests / dev runs
+*.db

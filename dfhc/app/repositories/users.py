@@ -17,11 +17,13 @@ def get_users(db: Session, skip: int = 0, limit: int = 100) -> list[User]:
     return db.query(User).offset(skip).limit(limit).all()
 
 
-def create_user(db: Session, user_in: UserCreate) -> User:
+def create_user(db: Session, user_in: UserCreate, is_superuser: bool = False) -> User:
     db_user = User(
         email=user_in.email,
         hashed_password=get_password_hash(user_in.password),
         full_name=user_in.full_name,
+        is_active=user_in.is_active,
+        is_superuser=is_superuser,
     )
     db.add(db_user)
     db.commit()
