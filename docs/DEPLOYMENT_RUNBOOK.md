@@ -18,7 +18,7 @@ Deployment is **blocked** unless all items below are true:
 - `main` contains the latest approved backend changes
 - CI is green on `main`
 - `DATABASE_URL` is provisioned
-- `SECRET_KEY` is set
+- `SECRET_KEY` is newly generated, at least 32 bytes and not a placeholder
 - Start command includes migrations first
 - No frontend is pointing to the live API yet
 
@@ -40,7 +40,8 @@ alembic upgrade head && uvicorn dfhc.main:app --host 0.0.0.0 --port $PORT
 2. Connect the GitHub repo to Render
 3. Apply `render.yaml` blueprint or equivalent settings manually
 4. Wait for initial deploy to complete
-5. Run the smoke test:
+5. Bootstrap an administrator and assign client owners as described in [Authentication](AUTHENTICATION.md). Existing JWTs are invalidated by the new signing/claim rules.
+6. Run the read-only smoke test:
 
 ```bash
 bash scripts/smoke_test.sh https://YOUR-API-DOMAIN
@@ -54,7 +55,9 @@ bash scripts/smoke_test.sh https://YOUR-API-DOMAIN
 - `/auth/token` returns a valid token
 - `/clients/` returns `401` without a token
 - `/clients/` returns `200` with a valid token
-- client creation succeeds with a token
+- client creation succeeds with an administrator token in staging
+- ordinary users cannot administer users or access another owner's client data
+- refresh rotation and logout/password-change revocation pass in staging
 
 ### Launch is BLOCKED if:
 - migrations fail

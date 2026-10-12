@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Date
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Date, ForeignKey
 from datetime import datetime, timezone
 
 from dfhc.app.core.database import Base
@@ -18,6 +18,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
+    token_version = Column(Integer, nullable=False, default=0, server_default="0")
     hashed_password = Column(String, nullable=False)
     full_name = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
@@ -30,6 +31,7 @@ class Client(Base):
     __tablename__ = "clients"
 
     id = Column(Integer, primary_key=True, index=True)
+    owner_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     full_name = Column(String, nullable=False)
     date_of_birth = Column(Date, nullable=True)
     diagnosis = Column(String, nullable=True)
@@ -42,3 +44,12 @@ class Client(Base):
     notes = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), default=_utcnow, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow, nullable=False)
+
+
+class RefreshSession(Base):
+    __tablename__ = "refresh_sessions"
+
+    token_hash = Column(String(64), primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    revoked = Column(Boolean, nullable=False, default=False)

@@ -1,122 +1,17 @@
-# DFHC API Post-Deploy Smoke Test
+# DFHC API post-deployment smoke test
 
-Use this checklist immediately after deploying the API to Render or Railway.
+Run migrations and configure an administrator as described in [Authentication](AUTHENTICATION.md). Never create a fixed production account/password from examples.
 
-## 1. Health endpoint
+Run `bash scripts/smoke_test.sh https://YOUR-API-DOMAIN`. The script performs read-only health and unauthenticated-access checks, and optionally checks a supplied access token without printing it. Supply a regular user's token through `DFHC_SMOKE_ACCESS_TOKEN` and set `DFHC_SMOKE_ROLE=member`; supply an administrator token and set the role to `admin` for admin checks. Do not use shell tracing or paste real credentials into issue comments.
 
-Request:
+Expected behavior:
 
-```bash
-curl https://YOUR-API-DOMAIN/health
-```
+- `/health`: 200; docs expose auth, user and client routes.
+- `/users/` and `/clients/` without credentials: 401.
+- `/users/me` with a valid token: 200.
+- `/users/` with a member token: 403; with an admin token: 200.
+- `/clients/` with a valid token: 200, scoped to ownership for members.
 
-Expected response:
+In a staging database, additionally verify refresh rotation/replay rejection, password-reset/logout revocation, inactive-account denial and cross-user read/update/delete denial. Do not create medical test records in production. Automated regressions cover these cases in `dfhc/tests/test_auth_security.py`.
 
-```json
-{"status":"ok","service":"dfhc-api"}
-```
-
-## 2. API docs
-
-Open:
-
-- `https://YOUR-API-DOMAIN/docs`
-
-Expected result:
-
-- Swagger UI loads
-- `/health`, `/auth/token`, `/users`, and `/clients` routes are visible
-
-## 3. Auth flow
-
-### Create a user
-
-```bash
-curl -X POST https://YOUR-API-DOMAIN/users/ \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "admin@dfhc.test",
-    "password": "StrongPass123",
-    "full_name": "DFHC Admin",
-    "is_active": true
-  }'
-```
-
-Expected result:
-
-- `201 Created`, or `400` if the email already exists
-
-### Get token
-
-```bash
-curl -X POST https://YOUR-API-DOMAIN/auth/token \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=admin@dfhc.test&password=StrongPass123"
-```
-
-Expected result:
-
-- `200 OK`
-- JSON includes `access_token`
-
-## 4. Clients auth gate
-
-### Without token
-
-```bash
-curl https://YOUR-API-DOMAIN/clients/
-```
-
-Expected result:
-
-- `401 Unauthorized`
-
-### With token
-
-```bash
-curl https://YOUR-API-DOMAIN/clients/ \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
-Expected result:
-
-- `200 OK`
-
-## 5. Create a client
-
-```bash
-curl -X POST https://YOUR-API-DOMAIN/clients/ \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -d '{
-    "full_name": "Mary Johnson",
-    "date_of_birth": "1980-05-15",
-    "diagnosis": "Cerebral Palsy",
-    "address": "123 Main St, Detroit, MI 48201",
-    "phone": "313-555-1234",
-    "emergency_contact_name": "James Johnson",
-    "emergency_contact_phone": "313-555-5678",
-    "medicaid_id": "MI12345678",
-    "is_active": true,
-    "notes": "Requires wheelchair access"
-  }'
-```
-
-Expected result:
-
-- `201 Created`
-- JSON includes a numeric `id`
-
-## 6. Failure conditions to stop launch
-
-Do not proceed with frontend integration if any of these happen:
-
-- `/health` fails
-- `/docs` does not load
-- `/auth/token` fails for a valid user
-- `/clients/` is reachable without a token
-- Database migration errors appear in logs
-
-## 7. Launch decision
-
-Frontend integration is allowed only after all checks above pass.
+Stop rollout if migrations fail, a secret is rejected, a public protected route returns data, the owner scope is incorrect, or refresh/revocation fails. Do not claim the frontend is integrated until authenticated requests have been tested on the published deployment.

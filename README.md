@@ -19,7 +19,7 @@ Set these in your deployment platform (Render, Railway, etc.) before starting th
 
 | Variable | Required | Description |
 |---|---|---|
-| `SECRET_KEY` | **Yes** | JWT signing key. Min 32 chars. Generate with: `openssl rand -hex 32` |
+| `SECRET_KEY` | **Yes** | JWT signing key. Min 32 UTF-8 bytes; no placeholders. Generate with: `openssl rand -hex 32` |
 | `DATABASE_URL` | **Yes** | PostgreSQL connection string. Example: `postgresql://user:pass@host:5432/dbname` |
 | `TESTING` | No | Set to `true` only in CI/test environments. Enables SQLite fallback and `create_all()`. |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | No | JWT expiry in minutes. Default: `30` |
@@ -80,3 +80,7 @@ uvicorn dfhc.main:app --host 0.0.0.0 --port 8000
 - See [SECURITY.md](SECURITY.md) for vulnerability reporting.
 - See [docs/BRANCH_PROTECTION.md](docs/BRANCH_PROTECTION.md) for branch protection settings.
 - See [docs/SECURITY_NOTES.md](docs/SECURITY_NOTES.md) for threat model and security notes.
+
+## Authentication
+
+See [Authentication](docs/AUTHENTICATION.md) for login/refresh/logout, permission checks, client ownership, administrator setup and required rollout steps. Migrate to revision 0003 before starting this version. Existing access tokens must be replaced by a fresh login.
