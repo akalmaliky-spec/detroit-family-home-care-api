@@ -1,6 +1,7 @@
 from typing import Optional
 from sqlalchemy.orm import Session
-from dfhc.app.models import User
+from dfhc.app.models import User, Client, RefreshSession
+from dfhc.app.core.sessions import revoke_user_sessions
 from dfhc.app.schemas import UserCreate, UserUpdate
 from dfhc.app.core.security import get_password_hash
 
@@ -30,7 +31,10 @@ def create_user(db: Session, user_in: UserCreate) -> User:
 
 
 def update_user(db: Session, db_user: User, user_in: UserUpdate) -> User:
+    db_user = db.query(User).filter(User.id == db_user.id).populate_existing().with_for_update().one()
     update_data = user_in.model_dump(exclude_unset=True)
+    if "password" in update_data or "is_active" in update_data:
+        revoke_user_sessions(db, db_user)
     if "password" in update_data:
         update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
     for field, value in update_data.items():
@@ -43,6 +47,8 @@ def update_user(db: Session, db_user: User, user_in: UserUpdate) -> User:
 def delete_user(db: Session, user_id: int) -> Optional[User]:
     db_user = get_user_by_id(db, user_id)
     if db_user:
+        db.query(RefreshSession).filter(RefreshSession.user_id == user_id).delete()
+        db.query(Client).filter(Client.owner_user_id == user_id).update({"owner_user_id": None})
         db.delete(db_user)
         db.commit()
     return db_user
